@@ -69,16 +69,26 @@ class Message(object):
 
     def __unicode__(self):
         message = self.link
+        if not Settings.SHORTENER_URL:
+            # if not using a configured shortener: links are automatically
+            # shortened on twitter only use the short link in length
+            # calculations
+            calc_message = u'https://t.co/XXXXXXXXXX'
+        else:
+            calc_message = message
 
-        if len(self.title + message) + 1 > 140:
-            title = self.truncate(self.title, u' ' + message)
+        if len(self.title + calc_message) + 1 > 140:
+            title = self.truncate(self.title, u' ' + calc_message)
             message = title + u' ' + message
+            calc_message = title + u' ' + calc_message
         else:
             message = self.title + u' ' + message
+            calc_message = self.title + u' ' + calc_message
 
         for tag in self.tags:
-            if len(message + tag) + 2 <= 140:
+            if len(calc_message + tag) + 2 <= 140:
                 message += u" #" + tag
+                calc_message += u" #" + tag
 
         return message
 
