@@ -27,7 +27,9 @@ def main():
             if x.id not in [y.id for y in last_feed.entries]
             and (now - struct_time_to_datetime(x.published_parsed)).days
                     <= Settings.MAX_AGE_DAYS]
-    print "Got new entries:", len(new_entries)
+
+    if len(new_entries) != 0:
+        print "Got new entries:", len(new_entries)
 
     # tweet the oldest entries first
     new_entries.reverse()
