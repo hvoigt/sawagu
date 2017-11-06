@@ -16,10 +16,10 @@ def main():
             Settings.TWITTER_ACCESS_TOKEN_SECRET)
 
     response = requests.get(Settings.FEED_URL)
-    new_data = response.content
+    new_data = response.content.decode('utf-8', errors='replace');
     new_feed = feedparser.parse(new_data)
 
-    last_data = cache.load()
+    last_data = cache.load().decode('utf-8', errors='replace');
     last_feed = feedparser.parse(last_data)
 
     now = datetime.datetime.now()
@@ -40,7 +40,7 @@ def main():
                 tags=[x.term for x in entry.tags])
         tweeter.send_tweet(unicode(message))
 
-    cache.save(new_data)
+    cache.save(new_data.encode('utf-8'))
 
 
 def struct_time_to_datetime(t):
@@ -131,7 +131,7 @@ class Tweeter(object):
         self.api = tweepy.API(self.auth)
 
     def send_tweet(self, message):
-        print "Sending message", unicode(message)
+        print "Sending message", message.encode('utf-8')
         try:
             self.api.update_status(message)
         except tweepy.TweepError, e:
