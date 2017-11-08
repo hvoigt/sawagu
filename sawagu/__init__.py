@@ -146,7 +146,7 @@ class Settings(object):
 
     __config = _get_local_settings()
 
-    CACHE_FILE = __config.get('CACHE_FILE') or '/tmp/sawagu.xml'
+    CACHE_FILE = __config.get('CACHE_FILE') or os.environ.get('HOME', '/tmp') + '/.sawagu-cache.xml'
     FEED_URL = __config.get('FEED_URL') or ''
     MAX_AGE_DAYS = __config.get('MAX_AGE_DAYS') or 7
     SHORTENER_URL = __config.get('SHORTENER_URL') or ''
