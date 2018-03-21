@@ -34,7 +34,7 @@ def main():
     for entry in new_entries:
         message = Message(
                 title=entry.title,
-                link=shortener.shorten(entry.feedburner_origlink),
+                link=shortener.shorten(entry.link),
                 tags=[x.term for x in entry.tags])
         tweeter.send_tweet(unicode(message))
 
