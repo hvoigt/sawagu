@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+# vim: set sw=4, ts=4, et
 import os
 import datetime
 import feedparser
 import requests
 import tweepy
+import tempfile
 from configobj import ConfigObj
+from bs4 import BeautifulSoup as BS
 
 
 def main():
@@ -37,8 +40,9 @@ def main():
         message = Message(
                 title=entry.title,
                 link=shortener.shorten(entry.link),
-                tags=[x.term for x in entry.tags])
-        tweeter.send_tweet(unicode(message))
+                tags=[x.term for x in entry.tags],
+                image=image_from_html(entry.summary))
+        tweeter.send_tweet(message)
 
     cache.save(new_data.encode('utf-8'))
 
@@ -46,6 +50,14 @@ def main():
 def struct_time_to_datetime(t):
     return datetime.datetime(*t[:5] + (min(t[5], 59),))
 
+def image_from_html(html):
+    image = ''
+    soup = BS(html)
+    for imgtag in soup.find_all('img'):
+        image = imgtag['src']
+        break;
+
+    return image
 
 class Shortener(object):
 
@@ -64,10 +76,16 @@ class Shortener(object):
 
 class Message(object):
 
-    def __init__(self, title='', link='', tags=()):
+    def __init__(self, title='', link='', tags=(), image=''):
         self.title = title
         self.link = link
         self.tags = tags
+        self.imageurl = image
+        self.local_imagefile = ''
+
+    def __del__(self):
+        if self.local_imagefile:
+            os.remove(self.local_imagefile)
 
     def __unicode__(self):
         message = self.link
@@ -98,6 +116,25 @@ class Message(object):
         shorten_by = len(to_shorten + to_keep) - 140 + 1
         result = to_shorten[:shorten_by] + u"…"
         return result
+
+    def download_image(self):
+
+        if not self.imageurl:
+            return ''
+
+        tempname = next(tempfile._get_candidate_names())
+        filename = "/tmp/sawagu_" + tempname + ".jpg"
+        request = requests.get(self.imageurl, stream=True)
+        if request.status_code == 200:
+            with open(filename, 'wb') as image:
+                self.local_imagefile = filename
+                for chunk in request:
+                    image.write(chunk)
+
+            return filename
+        else:
+            print("Unable to download image")
+            return ''
 
 
 class Cache(object):
@@ -131,9 +168,17 @@ class Tweeter(object):
         self.api = tweepy.API(self.auth)
 
     def send_tweet(self, message):
-        print "Sending message", message.encode('utf-8')
+        print "Sending message", unicode(message).encode('utf-8')
+
+        image = message.download_image()
+
         try:
-            self.api.update_status(message)
+
+            if len(image) == 0:
+                self.api.update_status(message)
+            else:
+                self.api.update_with_media(image, status=message)
+
         except tweepy.TweepError, e:
             if 'duplicate' not in str(e):
                 raise
